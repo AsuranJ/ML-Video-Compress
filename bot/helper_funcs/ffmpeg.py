@@ -28,7 +28,7 @@ from bot import (
     DOWNLOAD_LOCATION
 )
 
-async def convert_video(video_file, output_directory, total_time, bot, message, target_percentage, isAuto):
+async def convert_video(video_file, output_directory, total_time, bot, message, target_percentage, isAuto, bug):
     # https://stackoverflow.com/a/13891070/4723940
     out_put_file_name = output_directory + \
         "/" + str(round(time.time())) + ".mp4"
@@ -45,33 +45,15 @@ async def convert_video(video_file, output_directory, total_time, bot, message, 
       progress,
       "-i",
       video_file,
-      "-map",
-      "0", 
-      "-c:v",
-      "libx265",
-      "-metadata",
-      "title=krispEncodes",
-      "-pix_fmt", 
-      "yuv420p", 
-      "-preset",
-      "medium", 
-      "-s", 
-      "800x480",
-      "-crf", 
-      "32",
+      "-c:v", 
+      "h264",
+      "-preset", 
+      "ultrafast",
+      "-tune",
+      "film",
       "-c:a",
-      "libopus", 
-      "-profile:a", 
-      "aac_he_v2", 
-      "-ac", 
-      "2",
-      "-ab", 
-      "30k", 
-      "-vbr",
-      "2", 
-      "-c:s",
-      "copy", 
-      out_put_file_name,
+      "copy",
+      out_put_file_name
     ]
     if not isAuto:
       filesize = os.stat(video_file).st_size
@@ -163,6 +145,10 @@ async def convert_video(video_file, output_directory, total_time, bot, message, 
           )
         except:
             pass
+        try:
+          await bug.edit_text(text=stats)
+        except:
+          pass
         
     # Wait for the subprocess to finish
     stdout, stderr = await process.communicate()
