@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# (c) Shrimadhav U K | @AbirHasan2005
+# (c) Shrimadhav U K | @AbirHasan2005 | Mrvishal2k2
 
 # the logging things
 import logging
@@ -17,18 +17,16 @@ import re
 import json
 import subprocess
 import math
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from bot.helper_funcs.display_progress import (
   TimeFormatter
 )
 from bot.localisation import Localisation
 from bot import (
     FINISHED_PROGRESS_STR,
-    UN_FINISHED_PROGRESS_STR,
-    DOWNLOAD_LOCATION
+    UN_FINISHED_PROGRESS_STR
 )
 
-async def convert_video(video_file, output_directory, total_time, bot, message, target_percentage, isAuto, bug):
+async def convert_video(video_file, output_directory, total_time, bot, message, chan_msg):
     # https://stackoverflow.com/a/13891070/4723940
     out_put_file_name = output_directory + \
         "/" + str(round(time.time())) + ".mp4"
@@ -45,36 +43,35 @@ async def convert_video(video_file, output_directory, total_time, bot, message, 
       progress,
       "-i",
       video_file,
-      "-c:v", 
-      "h264",
-      "-preset", 
-      "ultrafast",
-      "-tune",
-      "film",
+      "-map",
+      "0", 
+      "-c:v",
+      "libx265",
+      "-metadata",
+      "title=krispEncodes",
+      "-pix_fmt", 
+      "yuv420p", 
+      "-preset",
+      "medium", 
+      "-s", 
+      "800x480",
+      "-crf", 
+      "32",
       "-c:a",
-      "copy",
-      out_put_file_name
+      "libopus", 
+      "-profile:a", 
+      "aac_he_v2", 
+      "-ac", 
+      "2",
+      "-ab", 
+      "30k", 
+      "-vbr",
+      "2", 
+      "-c:s",
+      "copy", 
+      out_put_file_name,
     ]
-    if not isAuto:
-      filesize = os.stat(video_file).st_size
-      calculated_percentage = 100 - target_percentage
-      target_size = ( calculated_percentage / 100 ) * filesize
-      target_bitrate = int(math.floor( target_size * 8 / total_time ))
-      if target_bitrate // 1000000 >= 1:
-        bitrate = str(target_bitrate//1000000) + "M"
-      elif target_bitrate // 1000 > 1:
-        bitrate = str(target_bitrate//1000) + "k"
-      else:
-        return None
-      extra = [ "-b:v", 
-                bitrate,
-                "-bufsize",
-                bitrate
-              ]
-      for elem in reversed(extra) :
-        file_genertor_command.insert(10, elem)
-    else:
-       target_percentage = 'auto'
+#Done !!
     COMPRESSION_START_TIME = time.time()
     process = await asyncio.create_subprocess_exec(
         *file_genertor_command,
@@ -94,7 +91,7 @@ async def convert_video(video_file, output_directory, total_time, bot, message, 
     isDone = False
     while process.returncode != 0:
       await asyncio.sleep(3)
-      with open(DOWNLOAD_LOCATION + "/progress.txt", 'r+') as file:
+      with open("/app/downloads/progress.txt",'r+') as file:
         text = file.read()
         frame = re.findall("frame=(\d+)", text)
         time_in_us=re.findall("out_time_ms=(\d+)", text)
@@ -124,32 +121,28 @@ async def convert_video(video_file, output_directory, total_time, bot, message, 
         if difference > 0:
           ETA = TimeFormatter(difference*1000)
         percentage = math.floor(elapsed_time * 100 / total_time)
-        progress_str = "📊 <b>Progress:</b> {0}%\n[{1}{2}]".format(
+        progress_str = "📊 <b>Progress:</b> {0}%\n[{1}{2}] \n\n© @BotDunia | @Discovery_Updates".format(
             round(percentage, 2),
             ''.join([FINISHED_PROGRESS_STR for i in range(math.floor(percentage / 10))]),
             ''.join([UN_FINISHED_PROGRESS_STR for i in range(10 - math.floor(percentage / 10))])
             )
-        stats = f'📦️ <b>Compressing</b> {target_percentage}%\n\n' \
-                f'⏰️ <b>ETA:</b> {ETA}\n\n' \
+        stats = f'📦️ <b>Converting To H256 </b>\n\n' \
+                f'⏰️ <b>TimeLeft:</b> {ETA}\n\n' \
                 f'{progress_str}\n'
         try:
           await message.edit_text(
-            text=stats,
-            reply_markup=InlineKeyboardMarkup(
-                [
-                    [ 
-                        InlineKeyboardButton('❌ Cancel ❌', callback_data='fuckingdo') # Nice Call 🤭
-                    ]
-                ]
-            )
+            text=stats
           )
         except:
             pass
-        try:
-          await bug.edit_text(text=stats)
-        except:
-          pass
         
+        try:
+          await chan_msg.edit_text(
+            text=stats
+          )
+        except:
+            pass
+
     # Wait for the subprocess to finish
     stdout, stderr = await process.communicate()
     #if( not isDone):
